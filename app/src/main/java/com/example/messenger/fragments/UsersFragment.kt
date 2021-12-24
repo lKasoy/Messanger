@@ -24,6 +24,7 @@ import com.example.messenger.model.User
 import com.example.messenger.services.LoadingState
 import com.example.messenger.viewmodels.UsersViewModel
 import com.example.messenger.viewmodels.factories.UsersListViewModelFactory
+import kotlin.concurrent.fixedRateTimer
 
 class UsersFragment : Fragment() {
 
@@ -36,9 +37,9 @@ class UsersFragment : Fragment() {
                 USERNAME to user.name
             )
             parentFragmentManager.commit {
-                setReorderingAllowed(true)
                 replace<ChatFragment>(R.id.container, args = userBundle)
-                addToBackStack(null)
+                setReorderingAllowed(true)
+                addToBackStack("usersFragment")
             }
         }
     )
@@ -72,7 +73,6 @@ class UsersFragment : Fragment() {
         usersAdapter.submitList(list)
 
         subscribeUsersList()
-        subscribeLoadingState()
         val id = getSharePrefsId()
         usersViewModel.fetchUsers(id)
 
@@ -86,9 +86,7 @@ class UsersFragment : Fragment() {
 
     private fun goToLoginFragment() {
         parentFragmentManager.commit {
-            setReorderingAllowed(true)
-            replace<LoginFragment>(R.id.container)
-            addToBackStack(null)
+            replace<LoginFragment>(R.id.container,"loginFragment")
         }
     }
 
@@ -99,22 +97,6 @@ class UsersFragment : Fragment() {
             putString(Constants.STATE, "")
             apply()
         }
-    }
-
-    private fun subscribeLoadingState() {
-        usersViewModel.loadingState.observe(viewLifecycleOwner, { state ->
-            when (state) {
-                LoadingState.LOADING -> {
-                    Toast.makeText(context, "Loading users...", Toast.LENGTH_SHORT).show()
-                }
-                LoadingState.SUCCESS -> {
-                    Toast.makeText(context, "Users loaded.", Toast.LENGTH_SHORT).show()
-                }
-                LoadingState.ERROR -> {
-                    Toast.makeText(context, "error", Toast.LENGTH_SHORT).show()
-                }
-            }
-        })
     }
 
     private fun getSharePrefsId(): String {

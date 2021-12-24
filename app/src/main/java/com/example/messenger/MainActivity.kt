@@ -17,8 +17,9 @@ class MainActivity : AppCompatActivity() {
     private fun initFragment(savedInstanceState: Bundle?) {
         if (savedInstanceState == null)
             supportFragmentManager.commit {
-                replace<LoginFragment>(R.id.container)
+                replace<LoginFragment>(R.id.container,"loginFragment")
                 setReorderingAllowed(true)
+                addToBackStack(null)
             }
     }
 }

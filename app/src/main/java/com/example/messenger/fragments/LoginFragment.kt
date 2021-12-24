@@ -95,9 +95,8 @@ class LoginFragment : Fragment() {
 
     private fun openUsersList() {
         parentFragmentManager.commit {
+            replace<UsersFragment>(R.id.container, "usersFragment")
             setReorderingAllowed(true)
-                .replace<UsersFragment>(R.id.container)
-                .addToBackStack(null)
         }
     }
 

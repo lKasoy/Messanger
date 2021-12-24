@@ -11,10 +11,9 @@ import com.example.messenger.services.LoadingState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class UsersViewModel(private val decoratorRepository: DecoratorRepository) : ViewModel() {
-
-    private val _loadingState = MutableLiveData<LoadingState>()
-    val loadingState: LiveData<LoadingState> = _loadingState
+class UsersViewModel(
+    private val decoratorRepository: DecoratorRepository
+) : ViewModel() {
 
     private val _users = MutableLiveData<List<User>>()
     val users: LiveData<List<User>> = _users
@@ -22,17 +21,15 @@ class UsersViewModel(private val decoratorRepository: DecoratorRepository) : Vie
     fun fetchUsers(id: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                _loadingState.postValue(LoadingState.LOADING)
-                _users.postValue(decoratorRepository.getUsers(id))
-                _loadingState.postValue(LoadingState.SUCCESS)
+                val currentUsers = _users.value ?: listOf()
+                _users.postValue(currentUsers + decoratorRepository.getUsers(id))
             } catch (e: Exception) {
                 e.printStackTrace()
-                _loadingState.postValue(LoadingState.ERROR)
             }
         }
     }
 
-    fun logOut(id: String, code: Int){
+    fun logOut(id: String, code: Int) {
         viewModelScope.launch {
             try {
                 decoratorRepository.logOut(id, code)

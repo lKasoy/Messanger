@@ -24,6 +24,14 @@ class ServerRepository {
     private lateinit var reader: BufferedReader
     private lateinit var writer: PrintWriter
 
+    fun listenMessages(): String {
+        var response = String()
+        for (i in 1..20) {
+            response = reader.readLine()
+        }
+        return response
+    }
+
     fun startUdpConnection(): String {
         Log.d("test", "start udp connection")
         try {
@@ -81,19 +89,19 @@ class ServerRepository {
         writer.flush()
         val users = reader.readLine()
         val usersReceivedDto = jsonToPayload(users) as UsersReceivedDto
-        Log.d("test","${usersReceivedDto.users}")
+        Log.d("test", "${usersReceivedDto.users}")
         return usersReceivedDto.users
     }
 
     fun sendMessage(id: String, receiver: String, message: String) {
-        Log.d("test","send message")
+        Log.d("test", "send message")
         writer.println(sendToServer(SEND_MESSAGE, SendMessageDto(id, receiver, message)))
-        Log.d("test","message - $message")
+        Log.d("test", "message - $message")
     }
 
     fun disconnect(id: String, code: Int) {
-        Log.d("test","disconnect")
         writer.println(sendToServer(DISCONNECT, DisconnectDto(id, code)))
+        Log.d("test", "disconnected from the server")
     }
 
     private fun sendToServer(action: BaseDto.Action, payload: Payload): String? {
@@ -112,10 +120,24 @@ class ServerRepository {
             }
             SEND_MESSAGE -> {
                 payload as SendMessageDto
-                Gson().toJson(BaseDto(SEND_MESSAGE, Gson().toJson(SendMessageDto(payload.id, payload.receiver, payload.message))))
+                Gson().toJson(
+                    BaseDto(
+                        SEND_MESSAGE,
+                        Gson().toJson(SendMessageDto(payload.id, payload.receiver, payload.message))
+                    )
+                )
+            }
+            DISCONNECT -> {
+                payload as DisconnectDto
+                Gson().toJson(
+                    BaseDto(
+                        DISCONNECT,
+                        Gson().toJson(DisconnectDto(payload.id, payload.code))
+                    )
+                )
             }
             else -> {
-                return null
+                null
             }
         }
     }
@@ -143,4 +165,5 @@ class ServerRepository {
             }
         }
     }
+
 }
