@@ -1,15 +1,16 @@
 package com.example.messenger.di
 
-import com.example.messenger.repository.DecoratorRepository
-import com.example.messenger.repository.ServerRepository
+import androidx.lifecycle.MutableLiveData
+import com.example.messenger.repository.servermodel.BaseDto
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 object DI {
 
-    val serverRepository: ServerRepository by lazy {
-        ServerRepository()
+    val id by lazy {
+        MutableLiveData<String>()
     }
 
-    val decoratorRepository: DecoratorRepository by lazy {
-        DecoratorRepository(serverRepository)
+    val messageFromServerFlow by lazy {
+        MutableSharedFlow<BaseDto>()
     }
 }

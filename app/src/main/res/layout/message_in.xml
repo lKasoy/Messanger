@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="5dp"
+    android:orientation="vertical"
+    android:weightSum="4">
+
+<!--    <TextView-->
+<!--        android:id="@+id/txtSenderName"-->
+<!--        android:gravity="right"-->
+<!--        android:textColor="@color/black"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_weight="1"-->
+<!--        android:textSize="10sp"/>-->
+
+    <TextView
+        android:id="@+id/txtInMessage"
+        android:gravity="right"
+        android:textColor="@color/purple_700"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="20sp"/>
+
+
+
+</LinearLayout>

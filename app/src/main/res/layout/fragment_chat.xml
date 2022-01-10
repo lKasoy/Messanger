@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:padding="5dp"
-    tools:context=".fragments.ChatFragment"
-    android:orientation="vertical">
+    tools:context=".ui.fragments.ChatFragment">
 
     <TextView
         android:id="@+id/username"
@@ -22,16 +21,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/linearLayout"
+        android:layout_below="@+id/username"
+        android:clipToPadding="true"
         app:layoutManager="LinearLayoutManager"
-        tools:context=".fragments.ChatFragment"
-        tools:listitem="@layout/message_item" />
+        app:stackFromEnd="true"
+        tools:context=".ui.fragments.ChatFragment"
+        tools:listitem="@layout/message_in" />
 
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
         android:padding="5dp"
         android:weightSum="4"
         tools:layout_editor_absoluteX="5dp">

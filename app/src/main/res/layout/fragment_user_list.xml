@@ -13,14 +13,21 @@
         android:layout_height="wrap_content"
         android:text="LOG OUT"/>
 
+    <Button
+        android:id="@+id/btnRenew"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btnLogOut"
+        android:text="Renew Users"/>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"
-        android:layout_below="@+id/btnLogOut"
+        android:layout_below="@+id/btnRenew"
         android:name="com.example.messenger.fragments.UsersFragment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layoutManager="LinearLayoutManager"
-        tools:context=".fragments.UsersFragment"
+        tools:context=".ui.fragments.UsersFragment"
         tools:listitem="@layout/fragment_user" />
 
 
