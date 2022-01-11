@@ -6,16 +6,18 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.example.messenger.repository.db.entitydb.Message
 import com.example.messenger.databinding.MessageInBinding
 import com.example.messenger.databinding.MessageOutBinding
-import com.example.messenger.di.DI.id
+import com.example.messenger.repository.db.entitydb.Message
+import com.example.messenger.repository.db.entitydb.User
 
 private const val IN = 0
 private const val OUT = 1
 
-class ChatAdapter
-    : ListAdapter<Message, ChatAdapter.ViewHolder>(DiffCallback) {
+class ChatAdapter(
+    private val user: User,
+    private val receiver: User
+) : ListAdapter<Message, ChatAdapter.ViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return if (viewType == IN) {
@@ -43,7 +45,7 @@ class ChatAdapter
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (currentList[position].senderId == id.value) {
+        return if (currentList[position].senderId == user.id ) {
             OUT
         } else {
             IN
@@ -66,21 +68,23 @@ class ChatAdapter
         abstract fun bind(message: Message)
     }
 
-    class InMessageViewHolder(binding: MessageInBinding) : ViewHolder(binding.root) {
-
-        private var inMessageBinding: MessageInBinding = binding
+    class InMessageViewHolder(private val binding: MessageInBinding) : ViewHolder(binding.root) {
 
         override fun bind(message: Message) {
-            inMessageBinding.txtInMessage.text = message.message
+            binding.apply {
+                txtSenderName.text = message.senderName
+                txtInMessage.text = message.message
+            }
         }
     }
 
-    class OutMessageViewHolder(binding: MessageOutBinding) : ViewHolder(binding.root) {
-
-        private var outMessageBinding: MessageOutBinding = binding
+    class OutMessageViewHolder(private val binding: MessageOutBinding) : ViewHolder(binding.root) {
 
         override fun bind(message: Message) {
-            outMessageBinding.txtOutMessage.text = message.message
+            binding.apply{
+                txtUserName.text = message.senderName
+                txtOutMessage.text = message.message
+            }
         }
     }
 }

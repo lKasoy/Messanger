@@ -13,24 +13,25 @@ interface DatabaseDao {
     @Query("SELECT * FROM users")
     suspend fun getUsers(): List<User>
 
-    @Query("SELECT * FROM messages")
-    suspend fun getMessagesList(): List<Message>
+//    @Query("SELECT * FROM messages")
+//    suspend fun getMessagesList(): List<Message>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addUsers(users: List<User>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun addMessage(message: Message)
+//    @Insert(onConflict = OnConflictStrategy.REPLACE)
+//    suspend fun addMessage(message: Message)
 
     @Query("DELETE FROM users")
     suspend fun deleteUsers()
 
-    @Query("DELETE FROM messages")
-    suspend fun deleteMessages()
+//    @Query("DELETE FROM messages")
+//    suspend fun deleteMessages()
 
-    @Query("SELECT * FROM users WHERE id = :id")
-    suspend fun getUserById(id: String): User
+//    @Query("SELECT * FROM users WHERE id = :id")
+//    suspend fun getUserById(id: String): User
 
+    // разделить по модельякам
 
 
 

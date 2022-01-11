@@ -1,78 +1,77 @@
 package com.example.messenger.ui.fragments
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import com.example.messenger.R
 import com.example.messenger.databinding.FragmentChatBinding
+import com.example.messenger.repository.db.entitydb.Message
+import com.example.messenger.repository.db.entitydb.User
 import com.example.messenger.services.adapter.ChatAdapter
-import com.example.messenger.services.constants.Constants
 import com.example.messenger.services.constants.Constants.ID
 import com.example.messenger.services.constants.Constants.USERNAME
 import com.example.messenger.ui.viewmodels.ChatViewModel
+import org.koin.android.ext.android.bind
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import java.util.*
 
 class ChatFragment : Fragment() {
 
     private lateinit var binding: FragmentChatBinding
     private val chatViewModel by viewModel<ChatViewModel>()
-    private val chatAdapter = ChatAdapter()
+
+    private lateinit var chatAdapter : ChatAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentChatBinding.bind(
-            inflater.inflate(
-                R.layout.fragment_chat,
-                container,
-                false
-            )
-        )
+        binding = FragmentChatBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val receiverId = requireArguments().getString(ID)
+        val receiverUserName = requireArguments().getString(USERNAME)
+        val sender = chatViewModel.getCurrentUser()
+
+        val receiver = User(receiverId!!, receiverUserName!!)
+        chatAdapter = ChatAdapter(sender, receiver)
+
         binding.messageList.adapter = chatAdapter
 
-        chatViewModel.refreshMessagesList()
+        binding.username.text = receiver.name
 
-        val userId = requireArguments().getString(ID)
-        val userName = requireArguments().getString(USERNAME)
-        binding.username.text = userName
-
-        subscribeMessageList()
+        subscribeNewMessage()
 
         binding.sendMessage.setOnClickListener {
-            val message = binding.txtMessage.text.toString()
-            chatViewModel.sendMessage(getID(), userId!!, message)
+            val message: Message =
+                Message(
+                    id = UUID.randomUUID().toString(),
+                    senderId = sender.id,
+                    senderName = sender.name,
+                    receiverId = receiver.id,
+                    receiverName = receiver.name,
+                    message =  binding.txtMessage.text.toString()
+                )
+            chatViewModel.sendMessage(receiver.id, message.message)
+
+            chatAdapter.submitList(chatAdapter.currentList + message) {
+                binding.messageList.smoothScrollToPosition(binding.messageList.bottom)
+            }
             binding.txtMessage.text = null
-            chatViewModel.refreshMessagesList()
         }
     }
 
-    @SuppressLint("NotifyDataSetChanged")
-    private fun subscribeMessageList() {
-        chatViewModel.messageList.observe(viewLifecycleOwner, {
-            chatAdapter.submitList(it)
-            binding.messageList.smoothScrollToPosition(binding.messageList.bottom)
-            chatAdapter.notifyDataSetChanged()
-
+    private fun subscribeNewMessage() {
+        chatViewModel.newMessage.observe(viewLifecycleOwner, {
+            chatAdapter.submitList(chatAdapter.currentList + it) {
+                binding.messageList.smoothScrollToPosition(binding.messageList.bottom)
+            }
         })
     }
 
-    private fun getID(): String {
-        val sharedPrefs =
-            requireContext().getSharedPreferences(
-                Constants.ID_PREFS,
-                AppCompatActivity.MODE_PRIVATE
-            )
-        return sharedPrefs.getString(ID, "")!!
-    }
 }

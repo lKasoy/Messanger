@@ -14,7 +14,6 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val viewModelModule = module {
-
     viewModel {
         LoginViewModel(get())
     }
@@ -27,8 +26,8 @@ val viewModelModule = module {
 }
 
 val udpConnectionModule = module {
-    factory { UdpConnection() }
-    factory { TcpConnection() }
+    single { UdpConnection() }
+    single { TcpConnection() }
 }
 
 val dataBaseModule = module {
@@ -37,24 +36,13 @@ val dataBaseModule = module {
         return appDatabase.getDatabaseDao
     }
 
-    single {
-        Room.databaseBuilder(androidContext(), AppDatabase::class.java, "db")
-            .build()
-    }
-    single { provideDao( get()) }
+    single { Room.databaseBuilder(androidContext(), AppDatabase::class.java, "db").build() }
+    single { provideDao(get()) }
 }
 
 val repositoryModule = module {
 
-    fun provideServerRepository(
-        udpConnection: UdpConnection,
-        tcpConnection: TcpConnection,
-        databaseDao: DatabaseDao
-    ): ServerRepository {
-        return ServerRepository(udpConnection, tcpConnection, databaseDao)
-    }
-
-    single { provideServerRepository(get(), get(), get()) }
-
-
+    single { ServerRepository(get(), get(), get()) }
 }
+
+

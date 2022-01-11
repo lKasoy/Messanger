@@ -4,17 +4,17 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="5dp"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:weightSum="4">
 
-<!--    <TextView-->
-<!--        android:id="@+id/txtUserName"-->
-<!--        android:gravity="right"-->
-<!--        android:textColor="@color/black"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:layout_weight="1"-->
-<!--        android:textSize="10sp"/>-->
+    <TextView
+        android:id="@+id/txtUserName"
+        android:gravity="left"
+        android:textColor="@color/black"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="10sp"/>
 
     <TextView
         android:id="@+id/txtOutMessage"

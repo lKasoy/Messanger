@@ -1,12 +1,16 @@
 package com.example.messenger.repository
 
 import android.util.Log
-import com.example.messenger.di.DI
+import com.example.messenger.repository.db.entitydb.User
 import com.example.messenger.repository.servermodel.*
 import com.google.gson.Gson
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
@@ -19,146 +23,129 @@ class TcpConnection {
     private var writer: PrintWriter? = null
     private var reader: BufferedReader? = null
 
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
+
+    private var id: String? = null
+
+    val newMessage by lazy {
+        MutableSharedFlow<MessageDto>()
+    }
+
+    val users by lazy {
+        MutableSharedFlow<UsersReceivedDto>()
+    }
+
+    val isConnection by lazy {
+        MutableStateFlow(true)
+    }
+
+    var user: User? = null
+
     fun startTcpConnection(ip: String) {
-        Log.d("test", "start tcp")
         socket = Socket(ip, 6666)
         writer = PrintWriter(OutputStreamWriter(socket?.getOutputStream()))
         reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
+        val baseDto = jsonToPayload(reader?.readLine()!!)
+        val connectedDto = Gson().fromJson(baseDto.payload, ConnectedDto::class.java)
+        id = connectedDto.id
+        Log.d("test", "start tcp id = $id")
     }
 
-    fun sendConnect(id: String, userName: String) {
-        writer?.println(sendToServer(BaseDto.Action.CONNECT, ConnectDto(id, userName)))
+    fun sendConnect(userName: String) {
+        writer?.println(sendToServer(BaseDto.Action.CONNECT, ConnectDto(id!!, userName)))
         writer?.flush()
+        user = User(id!!, userName)
         Log.d("test", "send connect")
     }
 
-    fun sendPing(id: String) {
-        writer?.println(sendToServer(BaseDto.Action.PING, PingDto(id)))
+    fun sendPing() {
+        writer?.println(sendToServer(BaseDto.Action.PING, PingDto(id!!)))
         writer?.flush()
         Log.d("test", "send ping")
-    }
-
-    fun sendGetUsers(id: String) {
-        writer?.println(sendToServer(BaseDto.Action.GET_USERS, GetUsersDto(id)))
-        writer?.flush()
-        Log.d("test", "send get Users")
-    }
-
-    fun sendMessage(id: String, receiver: String, message: String) {
-        Log.d("test", "send message")
-        Log.d("test", "$id, $receiver, $message")
-        writer?.println(
-            sendToServer(
-                BaseDto.Action.SEND_MESSAGE,
-                SendMessageDto(id, receiver, message)
-            )
-        )
-        Log.d("test", "message - $message")
-    }
-
-    fun sendDisconnect(id: String, code: Int) {
-        writer?.println(sendToServer(BaseDto.Action.DISCONNECT, DisconnectDto(id, code)))
-        Log.d("test", "disconnected from the server")
-    }
-
-    private fun sendToServer(action: BaseDto.Action, payload: Payload): String? {
-        return when (action) {
-            BaseDto.Action.CONNECT -> {
-                payload as ConnectDto
-                Gson().toJson(
-                    BaseDto(
-                        BaseDto.Action.CONNECT,
-                        Gson().toJson(ConnectDto(payload.id, payload.name))
-                    )
-                )
-            }
-            BaseDto.Action.PING -> {
-                payload as PingDto
-                Gson().toJson(BaseDto(BaseDto.Action.PING, Gson().toJson(PingDto(payload.id))))
-            }
-            BaseDto.Action.GET_USERS -> {
-                payload as GetUsersDto
-                Gson().toJson(
-                    BaseDto(
-                        BaseDto.Action.GET_USERS,
-                        Gson().toJson(GetUsersDto(payload.id))
-                    )
-                )
-            }
-            BaseDto.Action.SEND_MESSAGE -> {
-                payload as SendMessageDto
-                Gson().toJson(
-                    BaseDto(
-                        BaseDto.Action.SEND_MESSAGE,
-                        Gson().toJson(
-                            SendMessageDto(
-                                payload.id,
-                                payload.receiver,
-                                payload.message
-                            )
-                        )
-                    )
-                )
-            }
-            BaseDto.Action.DISCONNECT -> {
-                payload as DisconnectDto
-                Gson().toJson(
-                    BaseDto(
-                        BaseDto.Action.DISCONNECT,
-                        Gson().toJson(DisconnectDto(payload.id, payload.code))
-                    )
-                )
-            }
-            else -> {
-                null
-            }
+        scope.launch {
+            receiveAnswer()
         }
     }
 
-    fun receiveAnswer() {
-        GlobalScope.launch {
-            val running = true
-            while (running) {
+    fun sendGetUsers() {
+        writer?.println(sendToServer(BaseDto.Action.GET_USERS, GetUsersDto(id!!)))
+        writer?.flush()
+        Log.d("test", "send get Users")
+
+    }
+
+    fun sendMessage(receiver: String, message: String) {
+        writer?.println(
+            sendToServer(
+                BaseDto.Action.SEND_MESSAGE,
+                SendMessageDto(id!!, receiver, message)
+            )
+        )
+        Log.d("test", "send message to $receiver, message - $message")
+    }
+
+    private fun receiveAnswer() {
+        scope.launch {
+            while (socket?.isClosed != true && socket != null) {
                 try {
-                    val message = reader?.readLine()
-                    DI.messageFromServerFlow.emit(jsonToPayload(message!!))
-                    Log.d(
-                        "test",
-                        "Action - ${jsonToPayload(message).action}, Payload - ${jsonToPayload(message).payload}"
-                    )
+                    val baseDto = jsonToPayload(reader?.readLine()!!)
+                    when (baseDto.action) {
+                        BaseDto.Action.PONG -> {
+                            isConnection.emit(true)
+                            Log.d("test", "scope PONG ${baseDto.payload}")
+                        }
+                        BaseDto.Action.USERS_RECEIVED -> {
+                            users.emit(
+                                Gson().fromJson(
+                                    baseDto.payload,
+                                    UsersReceivedDto::class.java
+                                )
+                            )
+                            Log.d("test", "scope  USERS_RECEIVED ${baseDto.payload}")
+                        }
+                        BaseDto.Action.NEW_MESSAGE -> {
+                            newMessage.emit(
+                                Gson().fromJson(
+                                    baseDto.payload,
+                                    MessageDto::class.java
+                                )
+                            )
+                            Log.d("test", "scope NEW_MESSAGE ${baseDto.payload}")
+                        }
+                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    Log.d("test", "$e")
                 }
             }
         }
     }
 
-    private fun jsonToPayload(response: String): BaseDto {
-        val jsonObject = JSONObject(response)
-        val action = jsonObject.getString("action")
-        val payload = jsonObject.getString("payload")
-        when (action) {
-            "CONNECTED" -> {
-                return BaseDto(BaseDto.Action.CONNECTED, payload)
-            }
-            "PONG" -> {
-                return BaseDto(BaseDto.Action.PONG, payload)
-            }
-            "USERS_RECEIVED" -> {
-                return BaseDto(BaseDto.Action.USERS_RECEIVED, payload)
-            }
-            "NEW_MESSAGE" -> {
-                return BaseDto(BaseDto.Action.NEW_MESSAGE, payload)
-            }
-            else -> {
-                return BaseDto(BaseDto.Action.DISCONNECT, payload)
-            }
-        }
+    private fun sendToServer(action: BaseDto.Action, payload: Payload): String? {
+        return Gson().toJson(
+            BaseDto(
+                action,
+                Gson().toJson(payload)
+            )
+        )
     }
 
-    fun close() {
+    fun sendDisconnect() {
+        writer?.println(sendToServer(BaseDto.Action.DISCONNECT, DisconnectDto(id!!, 1)))
         socket?.close()
         writer?.close()
         reader?.close()
+        id = ""
+        Log.d("test", "disconnected from the server")
+    }
+
+    private fun jsonToPayload(response: String): BaseDto {
+        return Gson().fromJson(response, BaseDto::class.java)
+    }
+
+    fun getCurrentUser(): User {
+        Log.d("test","${user!!.name} id - ${user!!.id}")
+        return user!!
     }
 }

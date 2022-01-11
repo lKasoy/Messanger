@@ -1,7 +1,9 @@
 package com.example.messenger.ui.fragments
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +22,9 @@ import com.example.messenger.services.constants.Constants.ID
 import com.example.messenger.services.constants.Constants.ID_PREFS
 import com.example.messenger.services.constants.Constants.USERNAME
 import com.example.messenger.ui.viewmodels.UsersViewModel
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
+import org.koin.android.ext.android.bind
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class UsersFragment : Fragment() {
@@ -45,13 +50,7 @@ class UsersFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentUserListBinding.bind(
-            inflater.inflate(
-                R.layout.fragment_user_list,
-                container,
-                false
-            )
-        )
+        binding = FragmentUserListBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -60,17 +59,16 @@ class UsersFragment : Fragment() {
         binding.list.adapter = usersAdapter
 
         subscribeUsersList()
-        val id = getSharePrefsId()
-        usersViewModel.fetchUsers(id)
+        usersViewModel.sendGetUsers()
 
         binding.btnLogOut.setOnClickListener {
-            usersViewModel.logOut(id, 2)
-            resetUserName()
+            usersViewModel.logOut()
+            resetUserName(requireContext())
             goToLoginFragment()
         }
 
         binding.btnRenew.setOnClickListener {
-            usersViewModel.fetchUsers(id)
+            usersViewModel.sendGetUsers()
         }
     }
 
@@ -84,19 +82,13 @@ class UsersFragment : Fragment() {
         }
     }
 
-    private fun resetUserName() {
+    private fun resetUserName(context: Context) {
         val savedPref: SharedPreferences =
-            context?.getSharedPreferences(ID_PREFS, AppCompatActivity.MODE_PRIVATE) ?: return
+            context.getSharedPreferences(ID_PREFS, AppCompatActivity.MODE_PRIVATE) ?: return
         with(savedPref.edit()) {
             putString(USERNAME, "")
             apply()
         }
-    }
-
-    private fun getSharePrefsId(): String {
-        val sharedPrefs =
-            requireContext().getSharedPreferences(ID_PREFS, AppCompatActivity.MODE_PRIVATE)
-        return sharedPrefs.getString(ID, "")!!
     }
 
     private fun subscribeUsersList() {

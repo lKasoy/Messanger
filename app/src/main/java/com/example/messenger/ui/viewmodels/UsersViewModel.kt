@@ -1,14 +1,16 @@
 package com.example.messenger.ui.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.messenger.repository.db.entitydb.User
 import com.example.messenger.repository.ServerRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.collect
 
 class UsersViewModel(
     private val serverRepository: ServerRepository
@@ -17,22 +19,28 @@ class UsersViewModel(
     private val _users = MutableLiveData<List<User>>()
     val users: LiveData<List<User>> = _users
 
-    fun fetchUsers(id: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                serverRepository.sendGetUsers(id)
-                delay(1000)
-                _users.postValue(serverRepository.getUsers())
-            } catch (e: Exception) {
-                e.printStackTrace()
+    init {
+        subscribeUsers()
+    }
+
+    fun sendGetUsers() {
+        viewModelScope.launch {
+            serverRepository.sendGetUsers()
+        }
+    }
+
+    private fun subscribeUsers() {
+        viewModelScope.launch {
+            serverRepository.userList.collect {
+                _users.postValue(it)
             }
         }
     }
 
-    fun logOut(id: String, code: Int) {
+    fun logOut() {
         viewModelScope.launch {
             try {
-                serverRepository.sendDisconnect(id, code)
+                serverRepository.sendDisconnect()
             } catch (e: Exception) {
                 e.printStackTrace()
             }

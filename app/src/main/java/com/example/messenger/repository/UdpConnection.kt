@@ -11,7 +11,6 @@ class UdpConnection {
         val socket = DatagramSocket()
         val buffer = ByteArray(256)
         var ip: String? = ""
-
         Log.d("test", "start udp connection")
         while (ip == "") {
             try {

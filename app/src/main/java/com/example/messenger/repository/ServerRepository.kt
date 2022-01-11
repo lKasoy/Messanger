@@ -1,19 +1,12 @@
 package com.example.messenger.repository
 
-import android.util.Log
-import androidx.lifecycle.MutableLiveData
 import com.example.messenger.repository.db.DatabaseDao
 import com.example.messenger.repository.db.entitydb.Message
 import com.example.messenger.repository.db.entitydb.User
-import com.example.messenger.di.DI
-import com.example.messenger.repository.servermodel.BaseDto
-import com.example.messenger.repository.servermodel.ConnectedDto
 import com.example.messenger.repository.servermodel.MessageDto
-import com.example.messenger.repository.servermodel.UsersReceivedDto
-import com.google.gson.Gson
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 import java.util.*
 
 class ServerRepository(
@@ -21,88 +14,88 @@ class ServerRepository(
     private val tcpConnection: TcpConnection,
     private val databaseDao: DatabaseDao
 ) {
-    val isConnected by lazy {
-        MutableLiveData(true)
+    private var ip: String? = null
+    private val job by lazy { SupervisorJob() }
+    private val scope by lazy { CoroutineScope(Dispatchers.IO + job) }
+
+    val userList by lazy {
+        MutableSharedFlow<List<User>>()
+    }
+    val newMessage by lazy {
+        MutableSharedFlow<Message>()
     }
 
-    fun startUdpConnection(): String {
-        return udpConnection.startUdpConnection()
-    }
-
-    fun startConnection(ip: String) {
-        tcpConnection.startTcpConnection(ip)
-    }
-
-    fun sendConnect(id: String, userName: String) {
-        tcpConnection.sendConnect(id, userName)
-    }
-
-    fun sendPing(id: String) {
-        tcpConnection.sendPing(id)
-    }
-
-    fun sendGetUsers(id: String) {
-        tcpConnection.sendGetUsers(id)
-    }
-
-    suspend fun getUsers(): List<User> {
-        return databaseDao.getUsers()
-    }
-
-    suspend fun getMessages(): List<Message> {
-        return databaseDao.getMessagesList()
-    }
-
-    suspend fun clearDb() {
-        databaseDao.deleteUsers()
-        databaseDao.deleteMessages()
-    }
-
-    suspend fun sendMessage(id: String, receiver: String, message: String) {
-        tcpConnection.sendMessage(id, receiver, message)
-        databaseDao.addMessage(Message(UUID.randomUUID().toString(), id, receiver, message))
-    }
-
-    fun sendDisconnect(id: String, code: Int) {
-        DI.id.postValue("")
-        tcpConnection.sendDisconnect(id, code)
-        tcpConnection.close()
-        GlobalScope.launch {
-            isConnected.postValue(false)
-        }
-    }
-
-    suspend fun receiveAnswer() {
-        tcpConnection.receiveAnswer()
-        DI.messageFromServerFlow.collect { baseDto ->
-            when (baseDto.action) {
-                BaseDto.Action.CONNECTED -> {
-                    val connectedDto = Gson().fromJson(baseDto.payload, ConnectedDto::class.java)
-                    DI.id.postValue(connectedDto.id)
-                }
-                BaseDto.Action.USERS_RECEIVED -> {
-                    val usersReceivedDto =
-                        Gson().fromJson(baseDto.payload, UsersReceivedDto::class.java)
-                    usersReceivedDto.users.forEach { _ ->
-                        Log.d("test", "${usersReceivedDto.users}")
-                    }
-                    databaseDao.addUsers(usersReceivedDto.users)
-                    Log.d("test", "add to database")
-                }
-                BaseDto.Action.NEW_MESSAGE -> {
-                    val messageDto = Gson().fromJson(baseDto.payload, MessageDto::class.java)
-                    val message = Message(
-                        UUID.randomUUID().toString(),
-                        messageDto.from.id,
-                        DI.id.value!!,
-                        messageDto.message
-                    )
-                    databaseDao.addMessage(message)
-                }
-                BaseDto.Action.PONG -> {
-                    isConnected.postValue(true)
+    init {
+        scope.launch {
+            tcpConnection.isConnection.collect {
+                while (it) {
+                    delay(9000)
+                    tcpConnection.sendPing()
                 }
             }
         }
+
+        scope.launch {
+            tcpConnection.newMessage.collect {
+                val messageDto: MessageDto = it
+                val message = Message(
+                    id = UUID.randomUUID().toString(),
+                    senderId = messageDto.from.id ,
+                    senderName = messageDto.from.name,
+                    receiverId = getCurrentUser().id,
+                    receiverName = getCurrentUser().name,
+                    message = messageDto.message
+                )
+                newMessage.emit(message)
+            }
+        }
+
+        scope.launch {
+            tcpConnection.users.collect {
+                userList.emit(it.users)
+            }
+        }
     }
+
+    fun startUdpConnection() {
+        ip = udpConnection.startUdpConnection()
+    }
+
+    fun startTcpConnection() {
+        tcpConnection.startTcpConnection(ip!!)
+    }
+
+    fun login(userName: String) {
+        tcpConnection.sendConnect(userName)
+        tcpConnection.sendPing()
+    }
+
+    fun sendGetUsers() {
+        scope.launch {
+            tcpConnection.sendGetUsers()
+        }
+    }
+
+    suspend fun getUsersFromDb(): List<User> {
+        return databaseDao.getUsers()
+    }
+
+
+    fun getCurrentUser(): User {
+        return tcpConnection.getCurrentUser()
+    }
+
+    suspend fun sendMessage(receiver: String, message: String) {
+        tcpConnection.sendMessage(receiver, message)
+//        databaseDao.addMessage(Message(UUID.randomUUID().toString(), receiver, message))
+    }
+
+    fun sendDisconnect() {
+        tcpConnection.sendDisconnect()
+        scope.launch {
+            tcpConnection.isConnection.emit(false)
+        }
+    }
+    // переделать livedata на флоу
+    // избавиться от глобал скоупа
 }

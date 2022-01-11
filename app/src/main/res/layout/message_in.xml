@@ -7,14 +7,14 @@
     android:orientation="vertical"
     android:weightSum="4">
 
-<!--    <TextView-->
-<!--        android:id="@+id/txtSenderName"-->
-<!--        android:gravity="right"-->
-<!--        android:textColor="@color/black"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:layout_weight="1"-->
-<!--        android:textSize="10sp"/>-->
+    <TextView
+        android:id="@+id/txtSenderName"
+        android:gravity="right"
+        android:textColor="@color/black"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="10sp"/>
 
     <TextView
         android:id="@+id/txtInMessage"
