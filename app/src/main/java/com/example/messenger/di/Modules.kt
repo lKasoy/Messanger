@@ -6,6 +6,7 @@ import com.example.messenger.repository.db.DatabaseDao
 import com.example.messenger.repository.ServerRepository
 import com.example.messenger.repository.TcpConnection
 import com.example.messenger.repository.UdpConnection
+import com.example.messenger.repository.db.Database
 import com.example.messenger.ui.viewmodels.ChatViewModel
 import com.example.messenger.ui.viewmodels.LoginViewModel
 import com.example.messenger.ui.viewmodels.UsersViewModel
@@ -14,6 +15,7 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val viewModelModule = module {
+
     viewModel {
         LoginViewModel(get())
     }
@@ -26,18 +28,21 @@ val viewModelModule = module {
 }
 
 val udpConnectionModule = module {
-    single { UdpConnection() }
-    single { TcpConnection() }
+
+    factory { UdpConnection() }
+    factory { TcpConnection() }
 }
 
 val dataBaseModule = module {
 
+    //
     fun provideDao(appDatabase: AppDatabase): DatabaseDao {
         return appDatabase.getDatabaseDao
     }
 
-    single { Room.databaseBuilder(androidContext(), AppDatabase::class.java, "db").build() }
+    single { Room.databaseBuilder(androidContext(), AppDatabase::class.java, "messages").build() }
     single { provideDao(get()) }
+    single { Database(get()) }
 }
 
 val repositoryModule = module {

@@ -1,16 +1,12 @@
 package com.example.messenger.repository
 
 import android.util.Log
-import com.example.messenger.repository.db.entitydb.User
+import com.example.messenger.repository.db.entitydb.Message
 import com.example.messenger.repository.servermodel.*
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
@@ -36,7 +32,7 @@ class TcpConnection {
         MutableSharedFlow<UsersReceivedDto>()
     }
 
-    val isConnection by lazy {
+    private val isConnection by lazy {
         MutableStateFlow(true)
     }
 
@@ -57,37 +53,50 @@ class TcpConnection {
         writer?.flush()
         user = User(id!!, userName)
         Log.d("test", "send connect")
+        scope.launch {
+            isConnection.emit(true)
+        }
+        sendPing()
     }
 
-    fun sendPing() {
-        writer?.println(sendToServer(BaseDto.Action.PING, PingDto(id!!)))
-        writer?.flush()
-        Log.d("test", "send ping")
+
+    private fun sendPing() {
         scope.launch {
-            receiveAnswer()
+            while (socket?.isClosed == false && isConnection.value) {
+                writer?.println(sendToServer(BaseDto.Action.PING, PingDto(id!!)))
+                writer?.flush()
+                delay(9000)
+                Log.d("test", "send ping")
+            }
         }
+        receiveAnswer()
     }
 
     fun sendGetUsers() {
-        writer?.println(sendToServer(BaseDto.Action.GET_USERS, GetUsersDto(id!!)))
-        writer?.flush()
-        Log.d("test", "send get Users")
-
+        scope.launch {
+            writer?.println(sendToServer(BaseDto.Action.GET_USERS, GetUsersDto(id!!)))
+            writer?.flush()
+            Log.d("test", "send get Users")
+        }
     }
 
-    fun sendMessage(receiver: String, message: String) {
+    fun sendMessage(message: Message) {
         writer?.println(
             sendToServer(
                 BaseDto.Action.SEND_MESSAGE,
-                SendMessageDto(id!!, receiver, message)
+                SendMessageDto(
+                    id = message.senderId,
+                    receiver = message.receiverId,
+                    message = message.message
+                )
             )
         )
-        Log.d("test", "send message to $receiver, message - $message")
+        Log.d("test", "send message to ${message.receiverId}, message - ${message.message}")
     }
 
     private fun receiveAnswer() {
         scope.launch {
-            while (socket?.isClosed != true && socket != null) {
+            while (socket?.isClosed == false && isConnection.value) {
                 try {
                     val baseDto = jsonToPayload(reader?.readLine()!!)
                     when (baseDto.action) {
@@ -131,21 +140,27 @@ class TcpConnection {
         )
     }
 
-    fun sendDisconnect() {
-        writer?.println(sendToServer(BaseDto.Action.DISCONNECT, DisconnectDto(id!!, 1)))
-        socket?.close()
-        writer?.close()
-        reader?.close()
-        id = ""
-        Log.d("test", "disconnected from the server")
-    }
-
     private fun jsonToPayload(response: String): BaseDto {
         return Gson().fromJson(response, BaseDto::class.java)
     }
 
+    fun sendDisconnect() {
+        scope.launch {
+            isConnection.emit(false)
+            writer?.println(sendToServer(BaseDto.Action.DISCONNECT, DisconnectDto(id!!, 1)))
+
+            id = ""
+        }
+        job.cancelChildren()
+        socket?.close()
+        writer?.close()
+        reader?.close()
+        Log.d("test", "disconnected from the server")
+    }
+
+
     fun getCurrentUser(): User {
-        Log.d("test","${user!!.name} id - ${user!!.id}")
+        Log.d("test", "${user!!.name} id - ${user!!.id}")
         return user!!
     }
 }

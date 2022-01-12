@@ -17,11 +17,8 @@ class LoginViewModel(private val serverRepository: ServerRepository) : ViewModel
     fun login(userName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-//                serverRepository.clearDb()
-                serverRepository.startUdpConnection()
-                _loadingState.postValue(LoadingState.STARTUDP)
-                serverRepository.startTcpConnection()
-                _loadingState.postValue(LoadingState.STARTTCP)
+                _loadingState.postValue(LoadingState.LOADING)
+                serverRepository.startConnection()
                 serverRepository.login(userName)
                 _loadingState.postValue(LoadingState.SUCCESS)
             } catch (e: Exception) {

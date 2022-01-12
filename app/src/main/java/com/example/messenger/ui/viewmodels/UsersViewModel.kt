@@ -1,16 +1,13 @@
 package com.example.messenger.ui.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.messenger.repository.db.entitydb.User
 import com.example.messenger.repository.ServerRepository
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
+import com.example.messenger.repository.servermodel.User
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class UsersViewModel(
     private val serverRepository: ServerRepository

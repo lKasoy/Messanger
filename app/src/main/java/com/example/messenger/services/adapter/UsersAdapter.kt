@@ -5,8 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.messenger.databinding.FragmentUserBinding
-import com.example.messenger.repository.db.entitydb.User
-
+import com.example.messenger.repository.servermodel.User
 
 class UsersAdapter(
     private val onCLick: (User) -> Unit,

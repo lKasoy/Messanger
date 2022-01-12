@@ -9,14 +9,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.messenger.databinding.MessageInBinding
 import com.example.messenger.databinding.MessageOutBinding
 import com.example.messenger.repository.db.entitydb.Message
-import com.example.messenger.repository.db.entitydb.User
+import com.example.messenger.repository.servermodel.User
 
 private const val IN = 0
 private const val OUT = 1
 
 class ChatAdapter(
-    private val user: User,
-    private val receiver: User
+    private val user: User
 ) : ListAdapter<Message, ChatAdapter.ViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -45,7 +44,8 @@ class ChatAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (currentList[position].senderId == user.id ) {
+        // сравниваем имена, что бы после лог аута правильно лягли сообщения из базы данных
+        return if (currentList[position].senderName == user.name ) {
             OUT
         } else {
             IN

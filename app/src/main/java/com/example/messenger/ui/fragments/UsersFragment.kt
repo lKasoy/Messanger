@@ -3,28 +3,22 @@ package com.example.messenger.ui.fragments
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.provider.Settings
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.add
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
 import com.example.messenger.R
-import com.example.messenger.repository.db.entitydb.User
 import com.example.messenger.databinding.FragmentUserListBinding
+import com.example.messenger.repository.servermodel.User
 import com.example.messenger.services.adapter.UsersAdapter
 import com.example.messenger.services.constants.Constants.ID
 import com.example.messenger.services.constants.Constants.ID_PREFS
 import com.example.messenger.services.constants.Constants.USERNAME
 import com.example.messenger.ui.viewmodels.UsersViewModel
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collect
-import org.koin.android.ext.android.bind
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class UsersFragment : Fragment() {
