@@ -7,14 +7,13 @@ import com.google.gson.Gson
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.io.PrintWriter
 import java.net.Socket
 
-class TcpConnection: ServerInterface {
+class TcpConnection : TcpConnectionSample {
 
     private var socket: Socket? = null
     private var writer: PrintWriter? = null
@@ -24,41 +23,33 @@ class TcpConnection: ServerInterface {
     private val scope = CoroutineScope(Dispatchers.IO + job)
 
     private var id: String? = null
+    private var userName: String? = null
 
     override val isConnected = MutableStateFlow(false)
     override val userList = MutableSharedFlow<List<User>>()
     override val newMessage = MutableSharedFlow<MessageDto>()
 
-    fun startTcpConnection(ip: String, userName: String) {
+    override fun startTcpConnection(ip: String, userName: String) {
         socket = Socket(ip, TCP_IP_PORT)
         writer = PrintWriter(OutputStreamWriter(socket?.getOutputStream()))
         reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
         Log.d("test", "startTCP")
-        sendConnect(userName)
         receiveAnswer()
+        this.userName = userName
     }
 
-    private fun sendConnect(userName: String) {
-        scope.launch {
-            isConnected.collect {
-                when (it) {
-                    true -> {
-                        writer?.println(
-                            sendToServer(
-                                BaseDto.Action.CONNECT,
-                                ConnectDto(id!!, userName)
-                            )
-                        )
-                        writer?.flush()
-                        Log.d("test", "send connect id - $id ")
-                        sendPing()
-                    }
-                }
-            }
-        }
+    override fun sendConnect() {
+        writer?.println(
+            sendToServer(
+                BaseDto.Action.CONNECT, ConnectDto(id!!, userName!!)
+            )
+        )
+        writer?.flush()
+        Log.d("test", "send connect id - $id ")
+        sendPing()
     }
 
-    private fun sendPing() {
+    override fun sendPing() {
         scope.launch {
             while (socket?.isClosed == false && isConnected.value) {
                 delay(9000)
@@ -69,7 +60,7 @@ class TcpConnection: ServerInterface {
         }
     }
 
-    fun sendGetUsers() {
+    override fun sendGetUsers() {
         scope.launch {
             writer?.println(sendToServer(BaseDto.Action.GET_USERS, GetUsersDto(id!!)))
             writer?.flush()
@@ -77,7 +68,7 @@ class TcpConnection: ServerInterface {
         }
     }
 
-    fun sendMessage(userId: String, receiverId: String, message: String) {
+    override fun sendMessage(userId: String, receiverId: String, message: String) {
         writer?.println(
             sendToServer(
                 BaseDto.Action.SEND_MESSAGE,
@@ -91,7 +82,7 @@ class TcpConnection: ServerInterface {
         Log.d("test", "send message to $receiverId, message - $message")
     }
 
-    private fun receiveAnswer() {
+    override fun receiveAnswer() {
         scope.launch {
             while (socket?.isClosed == false) {
                 try {
@@ -101,6 +92,7 @@ class TcpConnection: ServerInterface {
                             val connectedDto =
                                 Gson().fromJson(baseDto.payload, ConnectedDto::class.java)
                             id = connectedDto.id
+                            sendConnect()
                             isConnected.emit(true)
                             Log.d("test", "scope CONNECTED ${baseDto.payload}")
                         }
@@ -136,7 +128,7 @@ class TcpConnection: ServerInterface {
         }
     }
 
-    private fun sendToServer(action: BaseDto.Action, payload: Payload): String? {
+    override fun sendToServer(action: BaseDto.Action, payload: Payload): String {
         return Gson().toJson(
             BaseDto(
                 action,
@@ -145,11 +137,11 @@ class TcpConnection: ServerInterface {
         )
     }
 
-    private fun jsonToPayload(response: String): BaseDto {
+    override fun jsonToPayload(response: String): BaseDto {
         return Gson().fromJson(response, BaseDto::class.java)
     }
 
-    fun sendDisconnect() {
+    override fun sendDisconnect() {
         scope.launch {
             isConnected.emit(false)
             writer?.println(sendToServer(BaseDto.Action.DISCONNECT, DisconnectDto(id!!, 1)))
@@ -162,7 +154,7 @@ class TcpConnection: ServerInterface {
         Log.d("test", "disconnected from the server")
     }
 
-    fun getUserId(): String {
+    override fun getUserId(): String {
         return if (id != "") {
             id!!
         } else {

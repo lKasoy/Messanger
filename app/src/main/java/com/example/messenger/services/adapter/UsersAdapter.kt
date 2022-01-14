@@ -3,13 +3,14 @@ package com.example.messenger.services.adapter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.messenger.databinding.FragmentUserBinding
 import com.example.messenger.repository.servermodel.User
 
 class UsersAdapter(
     private val onCLick: (User) -> Unit,
-) : androidx.recyclerview.widget.ListAdapter<User, UsersAdapter.ViewHolder>(DiffCallback) {
+) : ListAdapter<User, UsersAdapter.ViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = FragmentUserBinding.inflate(

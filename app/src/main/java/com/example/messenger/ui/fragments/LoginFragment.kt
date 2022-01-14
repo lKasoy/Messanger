@@ -9,7 +9,6 @@ import androidx.fragment.app.commit
 import androidx.fragment.app.replace
 import com.example.messenger.R
 import com.example.messenger.databinding.LoginFragmentBinding
-import com.example.messenger.services.LoadingState
 import com.example.messenger.ui.viewmodels.LoginViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -30,7 +29,6 @@ class LoginFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         subscribeLoadingState()
-        authorization()
         binding.login.setOnClickListener {
             val userName = binding.username.text.toString()
             loginViewModel.login(userName = userName)
@@ -38,20 +36,13 @@ class LoginFragment : Fragment() {
     }
 
     private fun subscribeLoadingState() {
-        loginViewModel.loadingState.observe(viewLifecycleOwner, { loadingState ->
-            when (loadingState) {
-                LoadingState.SUCCESS -> {
+        loginViewModel.loadingState.observe(viewLifecycleOwner, {
+            when (it) {
+                true -> {
                     openUsersList()
                 }
             }
         })
-    }
-
-    private fun authorization() {
-        val userName = loginViewModel.getUserName()
-        if (userName != "") {
-            loginViewModel.login(userName = userName)
-        }
     }
 
     private fun openUsersList() {

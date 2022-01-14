@@ -5,14 +5,22 @@ import com.example.messenger.di.*
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
-class AppKoin: Application() {
+class AppKoin : Application() {
 
     override fun onCreate() {
         super.onCreate()
 
         startKoin {
             androidContext(this@AppKoin)
-            modules(listOf(udpConnectionModule, dataBaseModule, repositoryModule, viewModelModule, sharedPreferencesModule))
+            modules(
+                listOf(
+                    udpConnectionModule,
+                    dataBaseModule,
+                    repositoryModule,
+                    viewModelModule,
+                    sharedPreferencesModule
+                )
+            )
         }
     }
 }

@@ -5,29 +5,34 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.messenger.repository.ServerRepository
-import com.example.messenger.services.LoadingState
-import com.example.messenger.services.SharedPrefs
+import com.example.messenger.repository.ServerRepositorySample
+import com.example.messenger.services.SharedPrefsSample
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
-    private val serverRepository: ServerRepository,
-    private val sharedPrefs: SharedPrefs
+    private val serverRepositorySample: ServerRepositorySample,
+    private val sharedPrefsSample: SharedPrefsSample
 ) : ViewModel() {
 
-    private val _loadingState = MutableLiveData<LoadingState>()
-    val loadingState: LiveData<LoadingState> = _loadingState
+    init {
+        val userName = sharedPrefsSample.getUserName()
+        if (userName != "")
+            login(userName)
+    }
+
+    private val _loadingState = MutableLiveData(false)
+    val loadingState: LiveData<Boolean> = _loadingState
 
     fun login(userName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                serverRepository.login(userName = userName)
-                serverRepository.isConnected.collect {
+                serverRepositorySample.login(userName = userName)
+                serverRepositorySample.isConnected.collect {
                     if (it) {
-                        _loadingState.postValue(LoadingState.SUCCESS)
-                        sharedPrefs.saveUser(userName = userName)
+                        _loadingState.postValue(true)
+                        sharedPrefsSample.saveUser(userName = userName)
                     }
                 }
             } catch (e: Exception) {
@@ -35,10 +40,6 @@ class LoginViewModel(
                 Log.d("test", e.toString())
             }
         }
-    }
-
-    fun getUserName(): String {
-        return sharedPrefs.getUserName()
     }
 }
 

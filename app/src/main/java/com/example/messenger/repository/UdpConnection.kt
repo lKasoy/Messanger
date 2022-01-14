@@ -7,9 +7,9 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 
-class UdpConnection {
+class UdpConnection : UdpConnectionSample {
 
-     fun startUdpConnection(): String {
+    override fun startUdp(): String {
         val socket = DatagramSocket()
         val buffer = ByteArray(256)
         var ip: String? = ""
