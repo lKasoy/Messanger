@@ -23,7 +23,6 @@ class ServerRepositoryImpl(
     override val userList = tcpConnection.userList.map { it }
     override val isConnected = tcpConnection.isConnected.map { it }
     override val newMessage = MutableSharedFlow<Message>()
-    //shareIn(scop
 
     init {
         scope.launch {
