@@ -9,7 +9,8 @@
     tools:context=".ui.fragments.ChatFragment">
 
     <TextView
-        android:id="@+id/username"
+        android:id="@+id/txtReceiverName"
+        android:textColor="@color/purple_700"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textAlignment="center"
@@ -21,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/linearLayout"
-        android:layout_below="@+id/username"
+        android:layout_below="@+id/txtReceiverName"
         android:clipToPadding="true"
         app:layoutManager="LinearLayoutManager"
         app:stackFromEnd="true"

@@ -6,11 +6,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.messenger.repository.ServerRepository
 import com.example.messenger.repository.servermodel.User
+import com.example.messenger.services.SharedPrefs
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class UsersViewModel(
-    private val serverRepository: ServerRepository
+    private val serverRepository: ServerRepository,
+    private val sharedPrefs: SharedPrefs
 ) : ViewModel() {
 
     private val _users = MutableLiveData<List<User>>()
@@ -18,12 +20,6 @@ class UsersViewModel(
 
     init {
         subscribeUsers()
-    }
-
-    fun sendGetUsers() {
-        viewModelScope.launch {
-            serverRepository.sendGetUsers()
-        }
     }
 
     private fun subscribeUsers() {
@@ -34,10 +30,17 @@ class UsersViewModel(
         }
     }
 
+    fun sendGetUsers() {
+        viewModelScope.launch {
+            serverRepository.sendGetUsers()
+        }
+    }
+
     fun logOut() {
         viewModelScope.launch {
             try {
                 serverRepository.sendDisconnect()
+                sharedPrefs.resetUserName()
             } catch (e: Exception) {
                 e.printStackTrace()
             }

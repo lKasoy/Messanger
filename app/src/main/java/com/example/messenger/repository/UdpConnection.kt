@@ -1,6 +1,8 @@
 package com.example.messenger.repository
 
 import android.util.Log
+import com.example.messenger.services.constants.Constants.HOST_IP
+import com.example.messenger.services.constants.Constants.UDP_PORT
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -17,7 +19,7 @@ class UdpConnection {
                 socket.soTimeout = 3000
                 var packet = DatagramPacket(
                     buffer, buffer.size,
-                    InetAddress.getByName("255.255.255.255"), 8888
+                    InetAddress.getByName(HOST_IP), UDP_PORT
                 )
                 socket.send(packet)
                 packet = DatagramPacket(buffer, buffer.size)

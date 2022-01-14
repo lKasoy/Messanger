@@ -1,81 +1,79 @@
 package com.example.messenger.repository
 
-import com.example.messenger.repository.db.Database
+import com.example.messenger.repository.db.DatabaseDao
 import com.example.messenger.repository.db.entitydb.Message
 import com.example.messenger.repository.servermodel.MessageDto
-import com.example.messenger.repository.servermodel.User
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.*
 
 class ServerRepository(
     private val udpConnection: UdpConnection,
     private val tcpConnection: TcpConnection,
-    private val database: Database
-) {
+    private val databaseDao: DatabaseDao
+) : ServerInterface {
+
     private val job by lazy { SupervisorJob() }
     private val scope by lazy { CoroutineScope(Dispatchers.IO + job) }
+    private val userID by lazy { tcpConnection.getUserId() }
 
-    val userList by lazy {
-        MutableSharedFlow<List<User>>()
-    }
-    val newMessage by lazy {
-        MutableSharedFlow<Message>()
-    }
+    override val userList = tcpConnection.userList.map { it }
+    override val isConnected = tcpConnection.isConnected.map { it }
+    override val newMessage = MutableSharedFlow<Message>()
 
     init {
         scope.launch {
             tcpConnection.newMessage.collect {
-                val messageDto: MessageDto = it
-                val message = Message(
+                val receivedMessage = Message(
                     id = UUID.randomUUID().toString(),
-                    senderId = messageDto.from.id,
-                    senderName = messageDto.from.name,
-                    receiverId = getCurrentUser().id,
-                    receiverName = getCurrentUser().name,
-                    message = messageDto.message
+                    senderId = it.from.id,
+                    receiverId = userID,
+                    message = it.message
                 )
-                newMessage.emit(message)
-                database.addMessage(message)
+                newMessage.emit(receivedMessage)
+                databaseDao.addMessage(receivedMessage)
             }
         }
-
-        scope.launch {
-            tcpConnection.users.collect {
-                userList.emit(it.users)
-            }
-        }
-    }
-
-    fun startConnection() {
-        tcpConnection.startTcpConnection(udpConnection.startUdpConnection())
     }
 
     fun login(userName: String) {
-        tcpConnection.sendConnect(userName)
+        scope.launch {
+            tcpConnection.startTcpConnection(
+                udpConnection.startUdpConnection(), userName
+            )
+            databaseDao.deleteMessages()
+        }
     }
 
     fun sendGetUsers() {
         tcpConnection.sendGetUsers()
     }
 
-    fun getCurrentUser(): User {
-        return tcpConnection.getCurrentUser()
-    }
-
-    fun sendMessage(message: Message) {
-        tcpConnection.sendMessage(message)
+    fun sendMessage(receiverId: String, message: String) {
+        val userMessage = Message(
+            id = UUID.randomUUID().toString(),
+            senderId = userID,
+            receiverId = receiverId,
+            message = message
+        )
+        tcpConnection.sendMessage(
+            userId = userID,
+            receiverId = receiverId,
+            message = message
+        )
         scope.launch {
-            database.addMessage(message)
+            databaseDao.addMessage(userMessage)
+            newMessage.emit(userMessage)
         }
     }
 
     suspend fun getMessageList(): List<Message> {
-        return database.getAllMessages()
+        return databaseDao.getMessagesList()
     }
 
     fun sendDisconnect() {

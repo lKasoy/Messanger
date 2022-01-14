@@ -1,19 +1,20 @@
 package com.example.messenger.repository
 
 import android.util.Log
-import com.example.messenger.repository.db.entitydb.Message
 import com.example.messenger.repository.servermodel.*
+import com.example.messenger.services.constants.Constants.TCP_IP_PORT
 import com.google.gson.Gson
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.io.PrintWriter
 import java.net.Socket
 
-class TcpConnection {
+class TcpConnection: ServerInterface {
 
     private var socket: Socket? = null
     private var writer: PrintWriter? = null
@@ -24,52 +25,48 @@ class TcpConnection {
 
     private var id: String? = null
 
-    val newMessage by lazy {
-        MutableSharedFlow<MessageDto>()
-    }
+    override val isConnected = MutableStateFlow(false)
+    override val userList = MutableSharedFlow<List<User>>()
+    override val newMessage = MutableSharedFlow<MessageDto>()
 
-    val users by lazy {
-        MutableSharedFlow<UsersReceivedDto>()
-    }
-
-    private val isConnection by lazy {
-        MutableStateFlow(true)
-    }
-
-    var user: User? = null
-
-    fun startTcpConnection(ip: String) {
-        socket = Socket(ip, 6666)
+    fun startTcpConnection(ip: String, userName: String) {
+        socket = Socket(ip, TCP_IP_PORT)
         writer = PrintWriter(OutputStreamWriter(socket?.getOutputStream()))
         reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
-        val baseDto = jsonToPayload(reader?.readLine()!!)
-        val connectedDto = Gson().fromJson(baseDto.payload, ConnectedDto::class.java)
-        id = connectedDto.id
-        Log.d("test", "start tcp id = $id")
+        Log.d("test", "startTCP")
+        sendConnect(userName)
+        receiveAnswer()
     }
 
-    fun sendConnect(userName: String) {
-        writer?.println(sendToServer(BaseDto.Action.CONNECT, ConnectDto(id!!, userName)))
-        writer?.flush()
-        user = User(id!!, userName)
-        Log.d("test", "send connect")
+    private fun sendConnect(userName: String) {
         scope.launch {
-            isConnection.emit(true)
+            isConnected.collect {
+                when (it) {
+                    true -> {
+                        writer?.println(
+                            sendToServer(
+                                BaseDto.Action.CONNECT,
+                                ConnectDto(id!!, userName)
+                            )
+                        )
+                        writer?.flush()
+                        Log.d("test", "send connect id - $id ")
+                        sendPing()
+                    }
+                }
+            }
         }
-        sendPing()
     }
-
 
     private fun sendPing() {
         scope.launch {
-            while (socket?.isClosed == false && isConnection.value) {
+            while (socket?.isClosed == false && isConnected.value) {
+                delay(9000)
                 writer?.println(sendToServer(BaseDto.Action.PING, PingDto(id!!)))
                 writer?.flush()
-                delay(9000)
                 Log.d("test", "send ping")
             }
         }
-        receiveAnswer()
     }
 
     fun sendGetUsers() {
@@ -80,36 +77,43 @@ class TcpConnection {
         }
     }
 
-    fun sendMessage(message: Message) {
+    fun sendMessage(userId: String, receiverId: String, message: String) {
         writer?.println(
             sendToServer(
                 BaseDto.Action.SEND_MESSAGE,
                 SendMessageDto(
-                    id = message.senderId,
-                    receiver = message.receiverId,
-                    message = message.message
+                    id = userId,
+                    receiver = receiverId,
+                    message = message
                 )
             )
         )
-        Log.d("test", "send message to ${message.receiverId}, message - ${message.message}")
+        Log.d("test", "send message to $receiverId, message - $message")
     }
 
     private fun receiveAnswer() {
         scope.launch {
-            while (socket?.isClosed == false && isConnection.value) {
+            while (socket?.isClosed == false) {
                 try {
                     val baseDto = jsonToPayload(reader?.readLine()!!)
                     when (baseDto.action) {
+                        BaseDto.Action.CONNECTED -> {
+                            val connectedDto =
+                                Gson().fromJson(baseDto.payload, ConnectedDto::class.java)
+                            id = connectedDto.id
+                            isConnected.emit(true)
+                            Log.d("test", "scope CONNECTED ${baseDto.payload}")
+                        }
                         BaseDto.Action.PONG -> {
-                            isConnection.emit(true)
+                            isConnected.emit(true)
                             Log.d("test", "scope PONG ${baseDto.payload}")
                         }
                         BaseDto.Action.USERS_RECEIVED -> {
-                            users.emit(
+                            userList.emit(
                                 Gson().fromJson(
                                     baseDto.payload,
                                     UsersReceivedDto::class.java
-                                )
+                                ).users
                             )
                             Log.d("test", "scope  USERS_RECEIVED ${baseDto.payload}")
                         }
@@ -126,6 +130,7 @@ class TcpConnection {
                 } catch (e: Exception) {
                     e.printStackTrace()
                     Log.d("test", "$e")
+                    isConnected.emit(false)
                 }
             }
         }
@@ -146,9 +151,8 @@ class TcpConnection {
 
     fun sendDisconnect() {
         scope.launch {
-            isConnection.emit(false)
+            isConnected.emit(false)
             writer?.println(sendToServer(BaseDto.Action.DISCONNECT, DisconnectDto(id!!, 1)))
-
             id = ""
         }
         job.cancelChildren()
@@ -158,9 +162,11 @@ class TcpConnection {
         Log.d("test", "disconnected from the server")
     }
 
-
-    fun getCurrentUser(): User {
-        Log.d("test", "${user!!.name} id - ${user!!.id}")
-        return user!!
+    fun getUserId(): String {
+        return if (id != "") {
+            id!!
+        } else {
+            ""
+        }
     }
 }

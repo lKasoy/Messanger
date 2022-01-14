@@ -10,7 +10,6 @@ import androidx.fragment.app.replace
 import com.example.messenger.R
 import com.example.messenger.databinding.LoginFragmentBinding
 import com.example.messenger.services.LoadingState
-import com.example.messenger.services.SharedPrefs
 import com.example.messenger.ui.viewmodels.LoginViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -18,7 +17,6 @@ class LoginFragment : Fragment() {
 
     private lateinit var binding: LoginFragmentBinding
     private val loginViewModel by viewModel<LoginViewModel>()
-    private var sharedPrefs: SharedPrefs? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -32,12 +30,10 @@ class LoginFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         subscribeLoadingState()
-        sharedPrefs = SharedPrefs(requireContext())
         authorization()
         binding.login.setOnClickListener {
             val userName = binding.username.text.toString()
             loginViewModel.login(userName = userName)
-            sharedPrefs!!.saveUser(userName = userName)
         }
     }
 
@@ -52,7 +48,7 @@ class LoginFragment : Fragment() {
     }
 
     private fun authorization() {
-        val userName = sharedPrefs!!.getUserName()
+        val userName = loginViewModel.getUserName()
         if (userName != "") {
             loginViewModel.login(userName = userName)
         }

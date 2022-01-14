@@ -1,12 +1,9 @@
 package com.example.messenger.ui.fragments
 
-import android.content.Context
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
@@ -16,8 +13,7 @@ import com.example.messenger.databinding.FragmentUserListBinding
 import com.example.messenger.repository.servermodel.User
 import com.example.messenger.services.adapter.UsersAdapter
 import com.example.messenger.services.constants.Constants.ID
-import com.example.messenger.services.constants.Constants.ID_PREFS
-import com.example.messenger.services.constants.Constants.USERNAME
+import com.example.messenger.services.constants.Constants.RECEIVER_NAME
 import com.example.messenger.ui.viewmodels.UsersViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -25,11 +21,11 @@ class UsersFragment : Fragment() {
 
     private lateinit var binding: FragmentUserListBinding
 
-    private var usersAdapter = UsersAdapter(
+    private val usersAdapter = UsersAdapter(
         onCLick = { user: User ->
             val userBundle = bundleOf(
                 ID to user.id,
-                USERNAME to user.name
+                RECEIVER_NAME to user.name
             )
             parentFragmentManager.commit {
                 replace<ChatFragment>(R.id.container, "chatFragment", args = userBundle)
@@ -57,7 +53,6 @@ class UsersFragment : Fragment() {
 
         binding.btnLogOut.setOnClickListener {
             usersViewModel.logOut()
-            resetUserName(requireContext())
             goToLoginFragment()
         }
 
@@ -73,15 +68,6 @@ class UsersFragment : Fragment() {
             replace<LoginFragment>(R.id.container, "loginFragment")
             setReorderingAllowed(true)
             addToBackStack(null)
-        }
-    }
-
-    private fun resetUserName(context: Context) {
-        val savedPref: SharedPreferences =
-            context.getSharedPreferences(ID_PREFS, AppCompatActivity.MODE_PRIVATE) ?: return
-        with(savedPref.edit()) {
-            putString(USERNAME, "")
-            apply()
         }
     }
 

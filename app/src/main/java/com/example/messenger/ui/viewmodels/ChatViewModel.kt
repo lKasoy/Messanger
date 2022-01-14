@@ -5,24 +5,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.messenger.repository.ServerRepository
 import com.example.messenger.repository.db.entitydb.Message
-import com.example.messenger.repository.servermodel.User
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-class ChatViewModel(private val serverRepository: ServerRepository) : ViewModel() {
+class ChatViewModel(
+    private val serverRepository: ServerRepository,
+    private val receiverId: String
+) : ViewModel() {
 
     private val _listMessages = MutableLiveData<List<Message>>()
     val listMessages: MutableLiveData<List<Message>> = _listMessages
-
-    private val _newMessage = MutableLiveData<Message>()
-    val newMessage: MutableLiveData<Message> = _newMessage
 
     init {
         subscribeNewMessages()
     }
 
-    fun getMessageList(){
-        viewModelScope.launch {
+    fun getMessageList() {
+        viewModelScope.launch(Dispatchers.IO) {
             val messages = serverRepository.getMessageList()
             _listMessages.postValue(messages)
         }
@@ -31,22 +31,19 @@ class ChatViewModel(private val serverRepository: ServerRepository) : ViewModel(
     private fun subscribeNewMessages() {
         viewModelScope.launch {
             serverRepository.newMessage.collect {
-                _newMessage.postValue(it)
+                val currentListMessages = _listMessages.value ?: listOf()
+                _listMessages.postValue(currentListMessages + it)
             }
         }
     }
 
-    fun sendMessage(message: Message) {
+    fun sendMessage(message: String) {
         viewModelScope.launch {
             try {
-                serverRepository.sendMessage(message)
+                serverRepository.sendMessage(receiverId, message)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-    }
-
-    fun getCurrentUser(): User {
-        return serverRepository.getCurrentUser()
     }
 }

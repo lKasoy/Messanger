@@ -22,4 +22,12 @@ class SharedPrefs(private val context: Context) {
         return sharedPrefs.getString(Constants.USERNAME, "")!!
     }
 
+    fun resetUserName() {
+        val savedPref: SharedPreferences =
+            context.getSharedPreferences(Constants.ID_PREFS, AppCompatActivity.MODE_PRIVATE) ?: return
+        with(savedPref.edit()) {
+            putString(Constants.USERNAME, "")
+            apply()
+        }
+    }
 }
