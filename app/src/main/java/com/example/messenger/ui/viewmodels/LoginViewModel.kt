@@ -5,21 +5,22 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.messenger.repository.ServerRepositorySample
-import com.example.messenger.services.SharedPrefsSample
+import com.example.messenger.repository.ServerRepository
+import com.example.messenger.services.SharedPrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
-    private val serverRepositorySample: ServerRepositorySample,
-    private val sharedPrefsSample: SharedPrefsSample
+    private val serverRepository: ServerRepository,
+    private val sharedPrefs: SharedPrefs
 ) : ViewModel() {
 
     init {
-        val userName = sharedPrefsSample.getUserName()
-        if (userName != "")
+        val userName = sharedPrefs.getUserName()
+        if (userName != "") {
             login(userName)
+        }
     }
 
     private val _loadingState = MutableLiveData(false)
@@ -28,11 +29,11 @@ class LoginViewModel(
     fun login(userName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                serverRepositorySample.login(userName = userName)
-                serverRepositorySample.isConnected.collect {
+                serverRepository.login(userName = userName)
+                serverRepository.isConnected.collect {
                     if (it) {
                         _loadingState.postValue(true)
-                        sharedPrefsSample.saveUser(userName = userName)
+                        sharedPrefs.saveUser(userName = userName)
                     }
                 }
             } catch (e: Exception) {

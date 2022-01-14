@@ -4,15 +4,15 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.messenger.repository.ServerRepositorySample
+import com.example.messenger.repository.ServerRepository
 import com.example.messenger.repository.servermodel.User
-import com.example.messenger.services.SharedPrefsSample
+import com.example.messenger.services.SharedPrefs
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class UsersViewModel(
-    private val serverRepositorySample: ServerRepositorySample,
-    private val sharedPrefsSample: SharedPrefsSample
+    private val serverRepository: ServerRepository,
+    private val sharedPrefs: SharedPrefs
 ) : ViewModel() {
 
     private val _users = MutableLiveData<List<User>>()
@@ -24,7 +24,7 @@ class UsersViewModel(
 
     private fun subscribeUsers() {
         viewModelScope.launch {
-            serverRepositorySample.userList.collect {
+            serverRepository.userList.collect {
                 _users.postValue(it)
             }
         }
@@ -32,15 +32,15 @@ class UsersViewModel(
 
     fun sendGetUsers() {
         viewModelScope.launch {
-            serverRepositorySample.sendGetUsers()
+            serverRepository.sendGetUsers()
         }
     }
 
     fun logOut() {
         viewModelScope.launch {
             try {
-                serverRepositorySample.sendDisconnect()
-                sharedPrefsSample.resetUserName()
+                serverRepository.sendDisconnect()
+                sharedPrefs.resetUserName()
             } catch (e: Exception) {
                 e.printStackTrace()
             }

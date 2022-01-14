@@ -7,7 +7,7 @@ import androidx.room.Query
 import com.example.messenger.repository.db.entitydb.Message
 
 @Dao
-interface DatabaseDao {
+interface MessageDao {
 
     @Query("SELECT * FROM messages")
     suspend fun getMessagesList(): List<Message>

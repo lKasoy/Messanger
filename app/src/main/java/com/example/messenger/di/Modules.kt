@@ -3,8 +3,8 @@ package com.example.messenger.di
 import androidx.room.Room
 import com.example.messenger.repository.*
 import com.example.messenger.repository.db.AppDatabase
+import com.example.messenger.services.SharedPrefsImpl
 import com.example.messenger.services.SharedPrefs
-import com.example.messenger.services.SharedPrefsSample
 import com.example.messenger.ui.viewmodels.ChatViewModel
 import com.example.messenger.ui.viewmodels.LoginViewModel
 import com.example.messenger.ui.viewmodels.UsersViewModel
@@ -27,24 +27,24 @@ val viewModelModule = module {
 
 val udpConnectionModule = module {
 
-    single<UdpConnectionSample> { UdpConnection() }
-    factory<TcpConnectionSample> { TcpConnection() }
+    single<UdpConnection> { UdpConnectionImpl() }
+    factory<TcpConnection> { TcpConnectionImpl() }
 }
 
 val dataBaseModule = module {
 
     single { Room.databaseBuilder(androidContext(), AppDatabase::class.java, "messages").build() }
-    single { get<AppDatabase>().getDatabaseDao }
+    single { get<AppDatabase>().getMessageDao }
 }
 
 val repositoryModule = module {
 
-    single<ServerRepositorySample> { ServerRepository(get(), get(), get()) }
+    single<ServerRepository> { ServerRepositoryImpl(get(), get(), get()) }
 }
 
 val sharedPreferencesModule = module {
 
-    single<SharedPrefsSample> { SharedPrefs(androidContext()) }
+    single<SharedPrefs> { SharedPrefsImpl(androidContext()) }
 }
 
 
